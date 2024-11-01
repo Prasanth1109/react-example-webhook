@@ -1,145 +1,183 @@
 "use client"
 
-import React, { useState } from 'react';
+import { useState } from "react";
 
-// Define the types for schema options
-interface SchemaOption {
-  label: string;
-  value: string;
-}
-
-// Schema options
-const schemaOptions: SchemaOption[] = [
-  { label: 'First Name', value: 'first_name' },
-  { label: 'Last Name', value: 'last_name' },
-  { label: 'Gender', value: 'gender' },
-  { label: 'Age', value: 'age' },
-  { label: 'Account Name', value: 'account_name' },
-  { label: 'City', value: 'city' },
-  { label: 'State', value: 'state' }
+const schemaOptions = [
+  { label: "First Name", value: "first_name", color: "bg-green-500" },
+  { label: "Last Name", value: "last_name", color: "bg-green-500" },
+  { label: "Gender", value: "gender", color: "bg-green-500" },
+  { label: "Age", value: "age", color: "bg-green-500" },
+  { label: "Account Name", value: "account_name", color: "bg-red-500" },
+  { label: "City", value: "city", color: "bg-red-500" },
+  { label: "State", value: "state", color: "bg-red-500" },
 ];
 
-const Home: React.FC = () => {
-  const [isDrawerOpen, setDrawerOpen] = useState<boolean>(false);
-  const [segmentName, setSegmentName] = useState<string>('');
-  const [selectedSchemas, setSelectedSchemas] = useState<SchemaOption[]>([]);
-  const [availableSchemas, setAvailableSchemas] = useState<SchemaOption[]>([...schemaOptions]);
+type Schema = {
+  id: number;
+  value: string;
+  label: string;
+  color: string;
+};
 
-  const handleSaveSegment = (): void => {
-    setDrawerOpen(true); // Open the drawer when "Save Segment" is clicked
-  };
+const SaveSegmentDrawer = () => {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [segmentName, setSegmentName] = useState("");
+  const [schemas, setSchemas] = useState<Schema[]>([]);
+  const [selectedSchema, setSelectedSchema] = useState<string>("");
 
-  const handleAddNewSchema = (): void => {
-    if (availableSchemas.length > 0) {
-      setSelectedSchemas([...selectedSchemas, availableSchemas[0]]);
-      setAvailableSchemas(availableSchemas.slice(1));
+  const addSchema = () => {
+    const option = schemaOptions.find((opt) => opt.value === selectedSchema);
+    if (option) {
+      setSchemas([...schemas, { id: Date.now(), ...option }]);
+      setSelectedSchema("");
     }
   };
 
-  const handleSchemaChange = (index: number, newSchema: SchemaOption): void => {
-    const newSelectedSchemas = selectedSchemas.map((schema, i) =>
-      i === index ? newSchema : schema
-    );
-    setSelectedSchemas(newSelectedSchemas);
+  const removeSchema = (id: number) => {
+    setSchemas(schemas.filter((schema) => schema.id !== id));
   };
 
-  const handleSubmit = (): void => {
-    const schema = selectedSchemas.map(schema => ({
-      [schema.value]: schema.label
-    }));
+  const drawerClose = () => {
+    setDrawerOpen(false); 
+    setSegmentName('');
+    setSchemas([]);
+    setSelectedSchema('');
+  }
 
-    const data = {
+  const saveSegment = () => {
+    const formattedData = {
       segment_name: segmentName,
-      schema
+      schema: schemas.map((s) => ({ [s.value]: s.label })),
     };
-
-    // Send data to webhook
-    fetch('https://webhook.site/cb692837-8144-4691-acd7-59aa5840fe93', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
+    console.log("Sending data to server:", JSON.stringify(formattedData, null, 2));
+    fetch("https://webhook.site/9d7e390e-867a-4fc4-b664-5c063d7e40fc", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formattedData),
+    }).then((response) => {
+      if (response.ok) alert("Segment saved successfully!");
+      else alert("Failed to save segment.");
     });
-
-    setDrawerOpen(false); // Close the drawer after saving
+    drawerClose(); 
   };
+
+  const availableOptions = schemaOptions.filter(
+    (opt) => !schemas.find((schema) => schema.value === opt.value)
+  );
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-200">
       <button
-        className="px-6 py-3 text-white bg-blue-500 rounded-md hover:bg-blue-600"
-        onClick={handleSaveSegment}
+        onClick={() => setDrawerOpen(true)}
+        className="bg-teal-600 text-white px-4 py-2 rounded-md"
       >
         Save Segment
       </button>
 
-      {/* Drawer */}
-      <div
-        className={`fixed top-0 right-0 w-96 h-full bg-white shadow-lg transform transition-transform ${
-          isDrawerOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <div className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Save Segment</h3>
+      {drawerOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50"
+          onClick={drawerClose}
+        ></div>
+      )}
 
+      <div
+        className={`fixed top-0 right-0 h-full w-96 bg-white shadow-lg transform ${drawerOpen ? "translate-x-0" : "translate-x-full"
+          } transition-transform duration-300`}
+      >
+        <h2 className="text-xl font-semibold mb-2 bg-[cadetblue] py-4 px-5"><i onClick={() => setDrawerOpen(false)} className="fa-solid fa-chevron-left mr-2 cursor-pointer"></i>Saving Segment</h2>
+        <div className="p-6">
+          <p className="text-gray-600 font-semibold text-sm mb-4">
+            Enter the Name of the Segment
+          </p>
           <input
             type="text"
-            placeholder="Enter segment name"
+            placeholder="Name of the Segment"
+            className="w-full p-2 border border-gray-300 rounded-md mb-4 text-zinc-800 text-sm"
             value={segmentName}
             onChange={(e) => setSegmentName(e.target.value)}
-            className="w-full p-2 mb-4 border rounded-md"
           />
-
-          <div className="bg-blue-100 p-4 mb-4 rounded-md">
-            {selectedSchemas.map((schema, index) => (
-              <select
-                key={index}
-                value={schema.value}
-                onChange={(e) =>
-                  handleSchemaChange(index, schemaOptions.find(opt => opt.value === e.target.value)!)
-                }
-                className="w-full p-2 mb-2 border rounded-md"
-              >
-                {schemaOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            ))}
+          <p className="text-gray-600 text-sm mb-6">
+            To save your segment, you need to add the schemas to build the query
+          </p>
+          <div className="flex items-center justify-end mb-2 text-gray-600 text-sm">
+            <span className="flex items-center gap-2 mr-4">
+              <span className="bg-green-500 w-2 h-2 rounded-full"></span> User Traits
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="bg-red-500 w-2 h-2 rounded-full"></span> Group Traits
+            </span>
           </div>
 
-          <select
-            onChange={handleAddNewSchema}
-            className="w-full p-2 mb-4 border rounded-md"
-          >
-            {availableSchemas.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
+          {schemas.length > 0 && (<div className="mb-4 border border-blue-200 rounded-lg p-4 bg-blue-50">
+            {schemas.map((schema) => (
+              <div key={schema.id} className="flex items-center mb-2">
+                <span className={`${schema.color} w-2 h-2 rounded-full mr-2`}></span>
+                <select
+                  className='w-full p-2 border border-gray-300 rounded-md text-gray-500 text-sm'
+                  value={schema.value}
+                  onChange={(e) => {
+                    const option = schemaOptions.find((opt) => opt.value === e.target.value);
+                    if (option) {
+                      setSchemas(
+                        schemas.map((s) =>
+                          s.id === schema.id ? { ...s, value: option.value, label: option.label } : s
+                        )
+                      );
+                    }
+                  }}
+                >
+                  <option value="">{schema.label}</option>
+                  {availableOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => removeSchema(schema.id)}
+                  className="ml-2 text-gray-500 rounded-md bg-cyan-100 px-2"
+                >
+                  <i className="fa-solid fa-minus"></i>
+                </button>
+              </div>
             ))}
-          </select>
+          </div>)}
+
+          <div className="flex items-center mb-4">
+            <select
+              className="w-full px-1 py-2 border border-gray-300 rounded-md text-gray-500 text-sm"
+              value={selectedSchema}
+              onChange={(e) => setSelectedSchema(e.target.value)}
+            >
+              <option value="" disabled hidden>Add schema to segment</option>
+              {availableOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <button
-            className="px-4 py-2 text-white bg-green-500 rounded-md hover:bg-green-600 mr-2"
-            onClick={handleAddNewSchema}
+            onClick={addSchema}
+            className="text-teal-700 text-sm font-semibold underline mb-4"
           >
-            +Add new schema
+            + Add new schema
           </button>
-
+        </div>
+        <div className="absolute bottom-0 bg-slate-100 p-4 w-full">
           <button
-            className="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
-            onClick={handleSubmit}
+            onClick={saveSegment}
+            className="bg-teal-600 text-white px-4 py-2 rounded-md mr-2"
           >
-            Save Segment
+            Save the Segment
           </button>
-
           <button
-            className="mt-4 text-red-500"
-            onClick={() => setDrawerOpen(false)}  // Close drawer button
+            onClick={drawerClose}
+            className="bg-white text-red-500 px-4 py-2 rounded-md"
           >
-            Close Drawer
+            Cancel
           </button>
         </div>
       </div>
@@ -147,4 +185,4 @@ const Home: React.FC = () => {
   );
 };
 
-export default Home;
+export default SaveSegmentDrawer;
